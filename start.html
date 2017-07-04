@@ -8,6 +8,8 @@
 jQuery(function($){
 	//设定分数
 	var point = 0;
+	//设定子弹等级
+	var weapon = 2;
 	//飞机移动设定
 	$("body").on("keydown",function(e){
 		if ($("#me").is(":animated")) {
@@ -15,7 +17,7 @@ jQuery(function($){
 		}else{
 			if (e.which == 39) {
 				$("#me").animate({
-					left : "+=25px"
+					left : "+=35px"
 				},100);
 			} else if (e.which == 38) {
 				$("#me").animate({
@@ -23,7 +25,7 @@ jQuery(function($){
 				},100);
 			} else if (e.which == 37) {
 				$("#me").animate({
-					left : "-=25px"
+					left : "-=35px"
 				},100);
 			} else if (e.which == 40) {
 				$("#me").animate({
@@ -34,18 +36,51 @@ jQuery(function($){
 		//飞机开炮设定
 	}).on("keydown",function(e){
 		if (e.which == 32) {
-		$("body").append("<img src='./img/bullet.png'>")
-			.children("img:last")
-			.addClass("bullet")
-			.offset({
-				top : $("#me").offset().top,
-				left : $("#me").offset().left+35 
-			})
-			.animate({
-				top : "-=500px"
-			},"normal",function(){
-				$(this).remove();
-			});	
+			if (weapon == 1) {
+				$("body")
+				.append("<embed src='./sound/bullet.mp3' hidden='true' autostart='true'>")
+				.append("<img src='./img/bullet.png'>")
+				.children("img:last")
+				.addClass("bullet")
+				.offset({
+					top : $("#me").offset().top,
+					left : $("#me").offset().left+45 
+				})
+				.animate({
+					top : "-=500px"
+				},"normal",function(){
+					$(this).remove();
+				});	
+			}else if (weapon == 2){
+				$("body")
+				.append("<embed src='./sound/bullet.mp3' hidden='true' autostart='true'>")
+				.append("<img src='./img/bullet.png'>")
+				.children("img:last")
+				.addClass("bullet")
+				.offset({
+					top : $("#me").offset().top,
+					left : $("#me").offset().left+25 
+				})
+				.animate({
+					top : "-=500px"
+				},"normal",function(){
+					$(this).remove();
+				});	
+				
+				$("body")
+				.append("<img src='./img/bullet.png'>")
+				.children("img:last")
+				.addClass("bullet")
+				.offset({
+					top : $("#me").offset().top,
+					left : $("#me").offset().left+65 
+				})
+				.animate({
+					top : "-=500px"
+				},"normal",function(){
+					$(this).remove();
+				});	
+			}
 		}
 	});
 	
@@ -82,9 +117,9 @@ jQuery(function($){
 		});
 	}
 	
-	//击中检查
+	//击中检查 param:小物体,大物体,命中后的函数
 	function scanner($small,$big,fn){
-		//检查元素重合
+		//检查元素重合 param:检查点x坐标,检查点y坐标,左上参考点x坐标,左上参考点y坐标,右下参考点x坐标,右下参考点y坐标
 		function checkIn(checkPoint_x,checkPoint_y,topLeft_x,topLeft_y,bottomRight_x,bottomRight_y){
 			if(checkPoint_x > topLeft_x && checkPoint_x < bottomRight_x
 				&& checkPoint_y < bottomRight_y &&checkPoint_y > topLeft_y){
@@ -92,7 +127,6 @@ jQuery(function($){
 			}
 			return false;
 		}
-
 		$small.each(function(i,b){
 			$big.each(function(j,t){
 				var $b = $(b);
@@ -129,24 +163,31 @@ jQuery(function($){
 		});
 	}
 	
-	//击中后处理
-	function hitted($small,$big){
+	//击溃处理  param:小物体,大物体,音效,击溃图片的jquey数组
+	function defeated($small,$big,$music,pic_array){
+		$("body").append($music);
 		$small.remove();
-		$("<img class='boom' src='./img/boom.png'>")
-		.offset({
-			top : $big.offset().top,
-			left : $big.offset().left 
-		})
-		.replaceAll($big)
-		.animate({
-			height : "+=10px",
-			width : "+=10px",
-			left : "-=5px",
-			top : "-=5px",
-		},"fast",function(){
-			$(this).remove();
-		});
+	 	var loc_x = $big.offset().left;
+		var loc_y = $big.offset().top;
+		$big.remove();
+		for ( var i = 0; i < pic_array.length; i++) {
+			pic_array[i].appendTo("body")
+			.offset({
+				top : loc_y,
+				left : loc_x 
+			})
+			.css("z-index",pic_array.length-i) 
+			.animate({
+				height : "+=10px",
+				width : "+=10px",
+				left : "-=5px",
+				top : "-=5px",
+			},(i+1)*50,function(){
+				$(this).remove();
+			});
+		} 
 	}
+	
 	//计分器
 	function counter(){
 		if(point >= 99999){
@@ -155,26 +196,39 @@ jQuery(function($){
 		point += 10;
 		$("#panel span:first").text(point);
 	}
+	
 	//生成目标
 	var timer_produce = setInterval(targetMotionLevel2,1000);
 	//扫描击中目标
 	var timer_hit = setInterval(function(){
 		scanner($("img[class=bullet]"),$("img[class=target]"),function($b,$t){
-			hitted($b,$t);
+			var $pic1 = $("<img class='boom' src='./img/enemy0_down1.png'>");
+			var $pic2 = $("<img class='boom' src='./img/enemy0_down2.png'>");
+			var $pic3 = $("<img class='boom' src='./img/enemy0_down3.png'>");
+			var $pic4 = $("<img class='boom' src='./img/enemy0_down4.png'>");
+			var pic_array = [$pic1,$pic2,$pic3,$pic4];
+			defeated($b,$t,$("<embed src='./sound/enemy0_down.mp3' hidden='true' autostart='true'>"),pic_array);
 			counter();
-		});
-	},20);
+		});	
+	},16);
 	//扫描自己被击中
 	var timer_over = setInterval(function(){
 		scanner($("img[class=target]"),$("#me"),function($t,$m){
-			hitted($t,$m);
+			var $pic1 = $("<img class='heroboom' src='./img/hero_blowup_n1.png'>");
+			var $pic2 = $("<img class='heroboom' src='./img/hero_blowup_n2.png'>");
+			var $pic3 = $("<img class='heroboom' src='./img/hero_blowup_n3.png'>");
+			var pic_array = [$pic1,$pic2,$pic3];
+			defeated($t,$m,$("<embed src='./sound/game_over.mp3' hidden='true' autostart='true'>"),pic_array);
+			//背景乐停止
+			$("#bgsound").remove();
+			//按键触发无效
 			$("body").off("keydown"); 
+			//停止扫描
 			clearInterval(timer_produce);
 			clearInterval(timer_hit);
 			clearInterval(timer_over);
 		});
 	},30);
-	
 });
 </script>
 <style type="text/css">
@@ -205,18 +259,19 @@ jQuery(function($){
 
 .bullet {
 	position: absolute;
-	top: 100px;
-	left: 100px;
 	width: 13px;
 	height: 25px;
 }
 
 .boom{
 	position: absolute;
-	top: 100px;
-	left: 100px;
 	width: 50px;
 	height: 50px;
+}
+.heroboom{
+	position: absolute;
+	width: 100px;
+	height: 124px;
 }
 .target {
 	position: absolute;
@@ -233,5 +288,6 @@ jQuery(function($){
 	<div id="me">
 		<img id="cat" src="./img/me.png" alt="cat">
 	</div>
+	<audio src="./sound/game_music.mp3" id="bgsound" hidden="true" autoplay="true" loop="true"></audio>
 </body>
 </html>
