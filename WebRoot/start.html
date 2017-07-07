@@ -1,0 +1,454 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Battle Plane</title>
+<script type="text/javascript" src="./js/jquery-1.8.3.min.js"></script>
+<script type="text/javascript">
+jQuery(function($){
+	//设定分数
+	var point;
+	//设定子弹等级
+	var weapon;
+	//飞机移动速度
+	var me_speed;
+	//敌机01出现时间频率;
+	var enemy01_produce_interval;
+	
+	//武器道具扫描器
+	var timer_weapon_scanner;
+	//武器道具扫描器
+	var timer_over;
+	//敌人生成器
+	var timer_produce;
+	//击中扫描器
+	var timer_hit;
+	//定时生成武器道具
+	var weapon_produce;
+	var $shoot = $("<embed src='./sound/bullet.mp3' hidden='true' autostart='true'>");
+	//初始化
+	var init = function(){
+		point = 0;
+		weapon = 1;
+		me_speed = 0.5;
+		enemy01_produce_interval = 2000;
+		var $start_button = $("<img src='./img/name.png' class='start_button'>");
+		$start_button.appendTo($("#viewport"))
+		.on("click",function(){
+			$start_button.remove();
+			game_start();
+		});
+	}
+	
+	var game_start = function(){
+		$("<div id='me'><img id='cat' src='./img/me.png'></div>")
+		.appendTo($("#viewport"));
+		//生成目标
+		timer_produce = setInterval(targetMotionLevel2,enemy01_produce_interval);
+		//扫描击中目标
+		timer_hit = setInterval(function(){
+			scanner($("img[class=bullet]"),$("img[class=target]"),function($b,$t){
+				var $pic1 = $("<img class='boom' src='./img/enemy0_down1.png'>");
+				var $pic2 = $("<img class='boom' src='./img/enemy0_down2.png'>");
+				var $pic3 = $("<img class='boom' src='./img/enemy0_down3.png'>");
+				var $pic4 = $("<img class='boom' src='./img/enemy0_down4.png'>");
+				var pic_array = [$pic1,$pic2,$pic3,$pic4];
+				defeated($b,$t,$("<embed src='./sound/enemy0_down.mp3' hidden='true' autostart='true'>"),pic_array);
+				counter();
+			});	
+		},16);
+		//扫描自己被击中
+		timer_over = setInterval(function(){
+			scanner($("img[class=target]"),$("#me"),game_over);
+		},30);
+		//10,25,45秒生成一个道具武器
+		weapon_produce = setTimeout(weapon_bonus,10000);
+		weapon_produce = setTimeout(weapon_bonus,25000);
+		weapon_produce = setTimeout(weapon_bonus,45000);
+		//敌机出现频率
+		setInterval(function(){
+			clearInterval(timer_produce);
+			timer_produce = setInterval(targetMotionLevel2,enemy01_produce_interval = enemy01_produce_interval/2);
+		},10000);
+		//飞机移动设定
+		$("body").on("keydown",function(e){
+			if ($("#me").is(":animated")) {
+				return false;
+			}else{
+				//向左
+				if (e.which == 39) {
+					$("#me").animate({
+						left : $("#viewport").width()-$("#me").width()
+					},($("#viewport").width()-$("#me").width()-$("#me").position().left)/me_speed,"linear");
+				//向上
+				} else if (e.which == 38) {
+					$("#me").animate({
+						top : 0
+					},$("#me").position().top/me_speed,"linear");
+				//向右
+				} else if (e.which == 37) {
+					$("#me").animate({
+						left : 0
+					},$("#me").position().left/me_speed,"linear");
+				//向下					
+				} else if (e.which == 40) {
+					$("#me").animate({
+						top : $("#viewport").height()-$("#me").height()
+					},($("#viewport").height()-$("#me").height()-$("#me").position().top)/me_speed,"linear");
+				} 
+			}
+		})
+		//停止运动
+		.on("keyup",function(e){
+			if (e.which == 39 || e.which == 38 || e.which == 37 || e.which == 40) {
+				$("#me").stop();
+			}
+		})
+		//飞机开炮设定
+		.on("keydown",function(e){
+			if (e.which == 32) {
+				if (weapon == 1) {
+					$("body")
+					.append($shoot)
+					.append("<img class='bullet' src='./img/bullet.png'>")
+					.children("img[class=bullet]:last")
+					.offset({
+						top : $("#me").offset().top,
+						left : $("#me").offset().left+$("#me").width()*0.45 
+					})
+					.animate({
+						top : "-=500px"
+					},"normal",function(){
+						$(this).remove();
+					});	
+				}else if (weapon == 2){
+					$("body")
+					.append($shoot)
+					.append("<img class='bullet' src='./img/bullet.png'>")
+					.children("img[class=bullet]:last")
+					.offset({
+						top : $("#me").offset().top,
+						left : $("#me").offset().left+$("#me").width()*0.12 
+					});
+					
+					$("body")
+					.append("<img class='bullet' src='./img/bullet.png'>")
+					.children("img[class=bullet]:last")
+					.offset({
+						top : $("#me").offset().top,
+						left : $("#me").offset().left+$("#me").width()*0.72
+					});
+					
+					$("img[class=bullet]:eq(-2),img[class=bullet]:eq(-1)")
+					.animate({
+						top : "-=500px"
+					},"normal",function(){
+						$(this).remove();
+					});	
+				}else if (weapon >= 3){
+					$("body").append($shoot);
+					
+					$("<img class='bullet' src='./img/bullet.png'>")
+					.appendTo("body")
+					.offset({
+						top : $("#me").offset().top,
+						left : $("#me").offset().left+$("#me").width()*0.09 
+					});
+					
+					$("<img class='bullet' src='./img/bullet.png'>")
+					.appendTo("body")
+					.offset({
+						top : $("#me").offset().top,
+						left : $("#me").offset().left+$("#me").width()*0.27 
+					});
+					
+					$("<img class='bullet' src='./img/bullet.png'>")
+					.appendTo("body")
+					.offset({
+						top : $("#me").offset().top,
+						left : $("#me").offset().left+$("#me").width()*0.57 
+					});
+					
+					$("<img class='bullet' src='./img/bullet.png'>")
+					.appendTo("body")
+					.offset({
+						top : $("#me").offset().top,
+						left : $("#me").offset().left+$("#me").width()*0.75 
+					});
+										
+					
+					$("img[class=bullet]:eq(-4),img[class=bullet]:eq(-3),\
+						img[class=bullet]:eq(-2),img[class=bullet]:eq(-1)")
+					.animate({
+						top : "-=500px"
+					},"normal",function(){
+						$(this).remove();
+					});	
+					
+				}
+			}
+		});				
+		
+	}
+	//游戏结束
+	var game_over = function($t,$m){
+		var $pic1 = $("<img class='heroboom' src='./img/hero_blowup_n1.png'>");
+		var $pic2 = $("<img class='heroboom' src='./img/hero_blowup_n2.png'>");
+		var $pic3 = $("<img class='heroboom' src='./img/hero_blowup_n3.png'>");
+		var pic_array = [$pic1,$pic2,$pic3];
+		defeated($t,$m,$("<embed src='./sound/game_over.mp3' hidden='true' autostart='true'>"),pic_array);
+		//背景乐停止
+		$("#bgsound").remove();
+		//按键触发无效
+		$("body").off("keydown"); 
+		//停止扫描
+		clearInterval(timer_produce);
+		clearInterval(timer_hit);
+		clearInterval(timer_over);
+		clearTimeout(weapon_produce);
+	}
+	//目标的运动设定 简单模式
+	function targetMotionLevel1(){
+		$("#viewport")
+		.append("<img src='./img/target.png' class='target'>")
+		.children("img[class=target]:last")
+		.animate({
+			left : "+=1100px"
+		},4000,function(){
+			$(this).remove();
+		});
+	}
+	
+	//目标的运动设定 困难模式
+	function targetMotionLevel2(){
+		var des_x = $("#me").position().left;
+		var des_y = $("#me").position().top;
+	
+		var begin_x = ($("#viewport").width())*(Math.random());
+		var begin_y = 0;
+		$("#viewport")
+		.append("<img src='./img/target.png' class='target'>")
+		.children("img[class=target]:last")
+		.css({
+			top : begin_y,
+			left : begin_x
+		}) 
+		.animate({
+			left : des_x,
+			top : des_y
+		},2000,"linear",function(){
+			$(this).remove();
+		});
+	}
+	//生成武器升级道具
+	function weapon_bonus(){
+		var begin_x = ($("#viewport").width())*(Math.random());
+		var begin_y = 0;
+		var des_x1 = ($("#viewport").width())*(Math.random());
+		var des_y1 = $("#viewport").height()-50;
+		var des_x2 = ($("#viewport").width())*(Math.random());
+		var des_y2 = 0;
+		var des_x3 = ($("#viewport").width())*(Math.random());
+		var des_y3 = $("#viewport").height()-50;
+	
+		$("#viewport")
+		.append("<img src='./img/prop_type_0.png' class='weapon'>")
+		.children("img[class=weapon]:last")
+		.css({
+			top : begin_y,
+			left : begin_x
+		})
+		.animate({
+			left : des_x1,
+			top : des_y1
+		},3000)
+		.animate({
+			left : des_x2,
+			top : des_y2
+		},3000)
+		.animate({
+			left : des_x3,
+			top : des_y3
+		},3000,"linear",function(){
+			$(this).remove();
+			clearInterval(timer_weapon_scanner);
+		});
+		//扫描吃到升级道具与否
+		timer_weapon_scanner = setInterval(function(){
+			scanner($("img[class=weapon]"),$("#me"),weapon_enhance);
+		},30); 
+	}
+	//武器加强
+	function weapon_enhance(){
+		$("img[class=weapon]").remove();
+		$("#viewport").append($("<embed src='./sound/get_double_laser.mp3' hidden='true' autostart='true' volume='100'>"));
+		weapon += 1;
+		clearInterval(timer_weapon_scanner);
+	}
+	//击中检查 param:小物体,大物体,命中后的函数
+	function scanner($small,$big,fn){
+		//检查元素重合 param:检查点x坐标,检查点y坐标,左上参考点x坐标,左上参考点y坐标,右下参考点x坐标,右下参考点y坐标
+		function checkIn(checkPoint_x,checkPoint_y,topLeft_x,topLeft_y,bottomRight_x,bottomRight_y){
+			if(checkPoint_x > topLeft_x && checkPoint_x < bottomRight_x
+				&& checkPoint_y < bottomRight_y &&checkPoint_y > topLeft_y){
+				return true;
+			}
+			return false;
+		}
+		$small.each(function(i,b){
+			$big.each(function(j,t){
+				var $b = $(b);
+				var $t = $(t);
+				//子弹从左上开始顺时针四个角的点
+				var p1_x,p1_y,p2_x,p2_y,p3_x,p3_y,p4_x,p4_y;
+				p1_x = $b.offset().left;
+				p1_y = $b.offset().top;
+				p2_x = p1_x + $b.width();
+				p2_y = p1_y;
+				p3_x = p2_x;
+				p3_y = p2_y + $b.height();
+				p4_x = p1_x;
+				p4_y = p1_y + $b.height();
+				//console.log(p1_x+":"+p1_y+";"+p2_x+":"+p2_y+";"+p3_x+":"+p3_y+";"+p4_x+":"+p4_y);
+				//目标左上坐标
+				var tl_x,tl_y;
+				tl_x = $t.offset().left;
+				tl_y = $t.offset().top;
+				//目标右下坐标
+				var br_x,br_y;
+				br_x = tl_x + $t.width();
+				br_y = tl_y + $t.height();
+				//判断四个点是否在目标内部
+				var in1 = checkIn(p1_x,p1_y,tl_x,tl_y,br_x,br_y);
+				var in2 = checkIn(p2_x,p2_y,tl_x,tl_y,br_x,br_y);
+				var in3 = checkIn(p3_x,p3_y,tl_x,tl_y,br_x,br_y);
+				var in4 = checkIn(p4_x,p4_y,tl_x,tl_y,br_x,br_y);
+				if(in1 || in2 || in3 || in4){
+					//击中后处理
+					fn($b,$t);
+				}
+			});
+		});
+	}
+	
+	//击溃处理  param:小物体,大物体,音效,击溃图片的jquey数组
+	function defeated($small,$big,$music,pic_array){
+		$("#viewport").append($music);
+		$small.remove();
+	 	var loc_x = $big.offset().left;
+		var loc_y = $big.offset().top;
+		$big.remove();
+		for ( var i = 0; i < pic_array.length; i++) {
+			pic_array[i].appendTo("#viewport")
+			.offset({
+				top : loc_y,
+				left : loc_x 
+			})
+			.css("z-index",pic_array.length-i) 
+			.animate({
+				height : "+=10px",
+				width : "+=10px",
+				left : "-=5px",
+				top : "-=5px",
+			},(i+1)*50,function(){
+				$(this).remove();
+			});
+		} 
+	}
+	
+	//计分器
+	function counter(){
+		if(point >= 99999){
+			return;
+		}
+		point += 10;
+		$("#panel span:first").text(point);
+	}
+	
+	init();
+});
+</script>
+<style type="text/css">
+*{
+	margin: 0;
+	padding:0
+}
+body{
+	background-color: #111
+}
+#viewport{
+	position:absolute;
+	left:20%;
+	top:3%;
+	width:800px;
+	height:600px;
+	background-image: url("./img/bg.png");
+	border:5px solid #666;
+	overflow:hidden 
+}
+
+#panel{
+	border:3px solid #aaa;
+	width:80px;
+	height:45px;
+	text-align:center;
+	line-height:45px;
+	position:absolute;
+	overflow:hidden
+}
+#panel span{
+	font-size: 20px;
+	font-family: "黑体";
+	color:#aaa
+}
+#cat {
+	width: 80px;
+	height: 100px
+}
+
+#me {
+	position: absolute;
+	top: 500px;
+	left: 600px;
+	overflow: hidden;
+	z-index: 1
+}
+
+.bullet {
+	position: absolute;
+	width: 13px;
+	height: 25px;
+}
+
+.boom{
+	position: absolute;
+	width: 50px;
+	height: 50px;
+}
+.heroboom{
+	position: absolute;
+	width: 100px;
+	height: 124px;
+}
+.start_button{
+	position:absolute;
+	top:240px;
+	left:190px;
+	cursor:pointer
+	
+}
+.target,.weapon {
+	position: absolute;
+	width: 50px;
+	height: 50px;
+	z-index: 2;
+}
+</style>
+</head>
+<body>
+	<div id="viewport">
+		<div id="panel"><strong><span>0</span><span>分</span></strong><div>
+	</div>
+	<audio src="./sound/game_music.mp3" id="bgsound" hidden="true" autoplay="true" loop="true" ></audio>
+</body>
+</html>
